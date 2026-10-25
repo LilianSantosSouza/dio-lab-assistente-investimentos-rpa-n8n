@@ -1,0 +1,237 @@
+{
+  "name": "Assistente de Investimentos - Desafio Completo (IA Generativa)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "clientes",
+        "options": {}
+      },
+      "id": "node-webhook-ai",
+      "name": "Webhook Clientes",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        220,
+        300
+      ],
+      "webhookId": "webhook-clientes-ai"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Normalizar clientes recebidos\nconst clientes = $input.first().json.body.clientes || [];\nreturn clientes.map(c => ({ json: c }));"
+      },
+      "id": "node-prep-clientes",
+      "name": "Extrair Itens de Clientes",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://digitalinnovationone.github.io/dio-lab-assistente-investimentos-rpa-n8n/data.csv",
+        "options": {}
+      },
+      "id": "node-http-csv-ai",
+      "name": "Baixar data.csv Investimentos",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "options": {
+          "headerRow": true
+        }
+      },
+      "id": "node-parse-csv-ai",
+      "name": "Processar CSV",
+      "type": "n8n-nodes-base.spreadsheetFile",
+      "typeVersion": 2,
+      "position": [
+        880,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Cruzamento dos dados do cliente com os produtos do CSV\nconst cliente = $input.item.json;\nconst opcoes = $('Processar CSV').all().map(item => item.json);\n\nconst produtosPerfil = opcoes.filter(op => op.perfil && op.perfil.toLowerCase() === cliente.perfil.toLowerCase());\n\nconst promptIA = `Voce e um especialista em investimentos e consultoria financeira de alto nivel da assessoria Alpha Invest.\nElabore uma mensagem personalizada, profissional, acolhedora e encorajadora para o seguinte cliente:\n\n- Nome: ${cliente.nome}\n- Email: ${cliente.email}\n- Saldo em conta para aporte: ${cliente.saldo}\n- Perfil de investidor: ${cliente.perfil}\n\nOpcoes de produtos disponiveis compativeis com o perfil:\n${JSON.stringify(produtosPerfil, null, 2)}\n\nDiretrizes da mensagem:\n1. Cumprimente o cliente cordialmente pelo nome.\n2. Destaque os pontos fortes do perfil dele (${cliente.perfil}) e relacione de forma consultiva ao seu saldo disponivel (${cliente.saldo}).\n3. Explique sucintamente por que os produtos listados fazem sentido para a estrategia dele.\n4. Finalize com um Call-to-Action (CTA) convidando-o para tirar duvidas ou confirmar os aportes.\n5. Nao invente produtos fora da lista. Seja claro, conciso e elegante.`;\n\nreturn [{\n  json: {\n    ...cliente,\n    produtos_compativeis: produtosPerfil,\n    prompt_ia: promptIA\n  }\n}];"
+      },
+      "id": "node-cruzar-dados-ai",
+      "name": "Cruzar Dados e Montar Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.prompt_ia }}",
+        "options": {
+          "systemMessage": "Voce e um assistente executivo e consultor de investimentos sênior. Responda em Portugues com excelente didatica, clareza e empatia financeira."
+        }
+      },
+      "id": "node-ai-agent",
+      "name": "Agente de IA Consultor",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        1320,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "options": {
+          "temperature": 0.7
+        }
+      },
+      "id": "node-openai-model",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        1320,
+        520
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "OPENAI_CREDENTIAL_ID",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Consolidar saida formatada\nconst item = $input.first().json;\nreturn [{\n  json: {\n    cliente: $('Cruzar Dados e Montar Prompt').item.json.nome,\n    email: $('Cruzar Dados e Montar Prompt').item.json.email,\n    perfil: $('Cruzar Dados e Montar Prompt').item.json.perfil,\n    saldo: $('Cruzar Dados e Montar Prompt').item.json.saldo,\n    produtos_recomendados: $('Cruzar Dados e Montar Prompt').item.json.produtos_compativeis,\n    mensagem_ia: item.output || item.text,\n    gerado_em: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "node-formata-saida-ai",
+      "name": "Formatar Resultado Final",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1600,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "options": {
+          "responseCode": 200
+        },
+        "responseBody": "={{ { status: 'sucesso', processamento: 'IA Generativa', resultados: $items().map(i => i.json) } }}"
+      },
+      "id": "node-respond-ai",
+      "name": "Responder ao RPA",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1820,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Clientes": {
+      "main": [
+        [
+          {
+            "node": "Extrair Itens de Clientes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extrair Itens de Clientes": {
+      "main": [
+        [
+          {
+            "node": "Baixar data.csv Investimentos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Baixar data.csv Investimentos": {
+      "main": [
+        [
+          {
+            "node": "Processar CSV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Processar CSV": {
+      "main": [
+        [
+          {
+            "node": "Cruzar Dados e Montar Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cruzar Dados e Montar Prompt": {
+      "main": [
+        [
+          {
+            "node": "Agente de IA Consultor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Agente de IA Consultor",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agente de IA Consultor": {
+      "main": [
+        [
+          {
+            "node": "Formatar Resultado Final",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatar Resultado Final": {
+      "main": [
+        [
+          {
+            "node": "Responder ao RPA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
