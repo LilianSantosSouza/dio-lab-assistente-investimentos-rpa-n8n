@@ -144,7 +144,7 @@ Conecte o Agente de IA do N8N a um modelo como Gemini ou GPT para:
 ├── 📁 src/
 │   └── 📄 extrair_clientes.ipynb   # ✅ Notebook Python (já implementado, falta só o TODO)
 ├── 📁 n8n/
-│   └── 📄 workflow.json            # 🎯 Seu desafio: exportar o workflow aqui
+│   └── 📄 workflow.json            # 🎯 Seu desafio: ✅ implementado
 └── 📁 docs/
     ├── 📄 index.html               # ✅ Página de clientes (já implementado)
     └── 📄 data.csv                 # ✅ Opções de investimento (já implementado)
@@ -158,6 +158,13 @@ Conecte o Agente de IA do N8N a um modelo como Gemini ou GPT para:
 | Entender código | "Explique o que faz a biblioteca BeautifulSoup em Python" |
 | Debugar erros | "Meu script Python está dando erro X, o que pode ser?" |
 | Montar workflow | "Como configuro um webhook no N8N para receber dados JSON?" |
+
+## 🎥 Demonstração do MVP Funcionando
+
+Aqui está a comprovação do funcionamento da automação integrada ao n8n local:
+
+![Print do Fluxo Funcionando](n8n_pipeline_dashboard_1792970960307.jpg)
+
 
 ## Referências
 
